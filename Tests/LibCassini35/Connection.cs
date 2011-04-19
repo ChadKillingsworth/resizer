@@ -21,14 +21,16 @@ using System.Text;
 using System.Threading;
 using System.Web;
 using System.Web.Hosting;
+using LibCassini.Client;
 
 namespace LibCassini {
    public class Connection : MarshalByRefObject {
-        Server _server;
+        ClientRequest request;
+
         Socket _socket;
         string _localServerIP;
 
-        internal Connection(Server server, Socket socket) {
+        public Connection(Server server, ClientRequest) {
             _server = server;
             _socket = socket;
         }
@@ -42,49 +44,25 @@ namespace LibCassini {
 
         public bool IsLocal {
             get {
-                string remoteIP = RemoteIP;
-                if (remoteIP == "127.0.0.1" || remoteIP == "::1")
-                    return true;
-                return LocalServerIP.Equals(remoteIP);
+                return true;
             }
         }
 
-        string LocalServerIP {
-            get {
-                if (_localServerIP == null) {
-                    var hostEntry = Dns.GetHostEntry(Environment.MachineName);
-                    var localAddress = hostEntry.AddressList[0];
-                    _localServerIP = localAddress.ToString();
-                }
-
-                return _localServerIP;
-            }
-        }
 
         public string LocalIP {
             get {
-                IPEndPoint ep = (IPEndPoint)_socket.LocalEndPoint;
-                return (ep != null && ep.Address != null)? ep.Address.ToString() : "127.0.0.1";
+                return "127.0.0.1";
             }
         }
 
         public string RemoteIP {
             get {
-                IPEndPoint ep = (IPEndPoint)_socket.RemoteEndPoint;
-                return (ep != null && ep.Address != null) ? ep.Address.ToString() : "127.0.0.1";
+                return  "127.0.0.1";
             }
         }
 
         public void Close() {
-            try {
-                _socket.Shutdown(SocketShutdown.Both);
-                _socket.Close();
-            }
-            catch {
-            }
-            finally {
-                _socket = null;
-            }
+
         }
 
         static string MakeResponseHeaders(int statusCode, string moreHeaders, int contentLength, bool keepAlive) {

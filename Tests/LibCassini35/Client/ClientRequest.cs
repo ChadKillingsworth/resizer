@@ -5,10 +5,13 @@ using System.Text;
 using System.Net;
 using System.Reflection;
 using System.Diagnostics;
+using System.IO;
 
 namespace LibCassini.Client {
-    public class ClientRequest:IDisposable {
+    public class ClientRequest {
 
+
+        MemoryStream data;
         WebClient wc;
         Server s;
         string url;

@@ -27,15 +27,14 @@ using System.Diagnostics;
 namespace LibCassini {
     [System.Web.AspNetHostingPermission(System.Security.Permissions.SecurityAction.Demand,Level=AspNetHostingPermissionLevel.Unrestricted)]
     public class Server : MarshalByRefObject {
-        int _port;
+ 
         string _virtualPath;
         string _physicalPath;
         bool _shutdownInProgress  =false;
-        Socket _socket;
         Host _host;
 
-        public Server(int port, string virtualPath, string physicalPath) {
-            _port = port;
+        public Server(string virtualPath, string physicalPath) {
+           
             _virtualPath = virtualPath;
             _physicalPath = physicalPath.EndsWith("\\", StringComparison.Ordinal) ? physicalPath : physicalPath + "\\";
         }
@@ -57,62 +56,20 @@ namespace LibCassini {
             }
         }
 
-        public int Port {
-            get {
-                return _port;
-            }
-        }
-
+       
         public string RootUrl {
             get {
-                if (_port != 80) {
-                    return "http://localhost:" + _port + _virtualPath;
-                }
-                else {
-                    return "http://localhost" + _virtualPath;
-                }
+                 return "http://localhost" + _virtualPath;
             }
         }
 
-        //
-        // Socket listening
-        // 
-
-        static Socket CreateSocketBindAndListen(AddressFamily family, IPAddress address, int port) {
-            var socket = new Socket(family, SocketType.Stream, ProtocolType.Tcp);
-            socket.Bind(new IPEndPoint(address, port));
-            Debug.WriteLine("Bound to " + address.ToString() + " port " + port);
-            socket.Listen((int)SocketOptionName.MaxConnections);
-            return socket;
-        }
+       
 
         public void Start() {
-            try {
-                _socket = CreateSocketBindAndListen(AddressFamily.InterNetwork, IPAddress.Loopback, _port);
-            }
-            catch {
-                _socket = CreateSocketBindAndListen(AddressFamily.InterNetworkV6, IPAddress.IPv6Loopback, _port);
-            }
+        }
 
-            ThreadPool.QueueUserWorkItem(delegate {
-                while (!_shutdownInProgress) {
-                    try {
-                        Socket acceptedSocket = _socket.Accept();
-
-                        ThreadPool.QueueUserWorkItem(delegate {
-                            if (!_shutdownInProgress) {
-                                var conn = new Connection(this, acceptedSocket);
-                                _isListening = true;
-                                Debug.WriteLine("Waiting for request..");
-                                // wait for at least some input
-                                if (conn.WaitForRequestBytes() == 0) {
-                                    conn.WriteErrorAndClose(400);
-                                    _isListening = false;
-                                    return;
-                                }
-                                _isListening = false;
-
-                                // find or create host
+        public ClientResponse Process(ClientRequest request){
+            // find or create host
                                 Host host = GetHost();
                                 if (host == null) {
                                     conn.WriteErrorAndClose(500);
@@ -121,36 +78,15 @@ namespace LibCassini {
                                 Debug.WriteLine("Processing request..");
                                 // process request in worker app domain
                                 host.ProcessRequest(conn);
-                            }
-                        });
-                    }
-                    catch {
-                        Thread.Sleep(100);
-                    }
-                }
-            });
-        }
 
-        private bool _isListening = false;
-        public bool IsListening {
-            get {
-                return _isListening;
-            }
         }
+          
+                         
 
+       
         public void Stop() {
             _shutdownInProgress = true;
 
-            try {
-                if (_socket != null) {
-                    _socket.Close();
-                }
-            }
-            catch {
-            }
-            finally {
-                _socket = null;
-            }
 
             try {
                 if (_host != null) {

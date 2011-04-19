@@ -28,7 +28,6 @@ namespace LibCassini {
    public class Host : MarshalByRefObject, IRegisteredObject {
         Server _server;
 
-        int _port;
         volatile int _pendingCallsCount;
         string _virtualPath;
         string _lowerCasedVirtualPath;
@@ -47,10 +46,9 @@ namespace LibCassini {
             HostingEnvironment.RegisterObject(this);
         }
 
-        public void Configure(Server server, int port, string virtualPath, string physicalPath) {
+        public void Configure(Server server, string virtualPath, string physicalPath) {
             _server = server;
 
-            _port = port;
             _installPath = null;
             _virtualPath = virtualPath;
 
@@ -80,7 +78,7 @@ namespace LibCassini {
                 if (_pendingCallsCount <= 0)
                     break;
 
-                Thread.Sleep(250);
+                Thread.Sleep(50);
             }
         }
 
@@ -121,7 +119,6 @@ namespace LibCassini {
         public string NormalizedVirtualPath { get { return _lowerCasedVirtualPathWithTrailingSlash; } }
         public string PhysicalClientScriptPath { get { return _physicalClientScriptPath; } }
         public string PhysicalPath { get { return _physicalPath; } }
-        public int Port { get { return _port; } }
         public string VirtualPath { get { return _virtualPath; } }
 
         public bool IsVirtualPathInApp(String path) {
